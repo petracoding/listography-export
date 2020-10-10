@@ -1,10 +1,7 @@
-////////////////////////////////////  VARIABLES
-
-const pathname = getPathOfUrl();
-const userName = getPathOfUrl(document.querySelector(".user-box .title a").href).substring(1);
-const userId = document.querySelector(".about img").getAttribute("src").replace("/action/user-image?uid=", "");
-const indexPath = "/" + userName + "/index";
-
+let pathname;
+let userName;
+let userId;
+let indexPath;
 let popup;
 let popupoverlay;
 let currentBatch = 1;
@@ -12,36 +9,37 @@ let listCount;
 let listsToExport = [];
 let output = "";
 
+if (document.readyState !== "loading") {
+  init();
+} else {
+  document.addEventListener("DOMContentLoaded", init);
+}
+
 ////////////////////////////////////  INIT
 
-// only if the user is on their profile
-if (document.querySelector(".global-menu .create-list")) {
-  HTML();
+function init() {
+  const isOnOwnProfile = document.querySelector(".global-menu .create-list");
 
-  // start export if user clicked the export all link and was redirected to the archive
-  if (pathname == indexPath + "?export=true") {
+  if (isOnOwnProfile) {
+    // Init variables
+    const userProfileLink = document.querySelector(".user-box .title a").href;
+    const userImageSrc = document.querySelector(".about img").getAttribute("src");
+    pathname = getPathOfUrl();
+    userName = getPathOfUrl(userProfileLink).substring(1);
+    userId = userImageSrc.replace("/action/user-image?uid=", "");
+    indexPath = "/" + userName + "/index";
+
+    // Init HTML
+    HTML();
+
+    // Start export-all if url contains ?export=true
+    if (pathname == indexPath + "?export=true") {
       setTimeout(startExportAll, 0);
+    }
   }
 }
 
-////////////////////////////////////  EXPORT
-
-async function startExportAll() {
-  const listLinksToOpen = document.querySelectorAll(".body_folder .list a");
-  if (!listLinksToOpen) {
-    showPopup("No lists found.", true);
-    return;
-  }
-
-  startOutput();
-
-  await asyncForEach([...listLinksToOpen], async (link) => {
-    let list = await openListInArchive(link);
-    await editListAndAddToOutput(list);
-  });
-
-  finishOutput();
-}
+////////////////////////////////////  EXPORT VISIBLE
 
 async function startExportVisible() {
   const listSelector = ".list-container";
@@ -54,11 +52,28 @@ async function startExportVisible() {
     return;
   }
 
-  listsToExport = [...listNodes];
+  startOutput();
+
+  await asyncForEach([...listNodes], async (list) => {
+    await editListAndAddToOutput(list);
+  });
+
+  finishOutput();
+}
+
+////////////////////////////////////  EXPORT ALL
+
+async function startExportAll() {
+  const listLinksToOpen = document.querySelectorAll(".body_folder .list a");
+  if (!listLinksToOpen) {
+    showPopup("No lists found.", true);
+    return;
+  }
 
   startOutput();
 
-  await asyncForEach(listsToExport, async (list) => {
+  await asyncForEach([...listLinksToOpen], async (link) => {
+    let list = await openListInArchive(link);
     await editListAndAddToOutput(list);
   });
 
@@ -97,6 +112,8 @@ function openListInArchive(link) {
   return listOpenPromise;
 }
 
+////////////////////////////////////  GET LIST
+
 function editListAndAddToOutput(list) {
   let listEditPromise = new Promise(function (resolve, reject) {
     const editButton = list.querySelector(".menu .item a[href*=edit-list]");
@@ -129,7 +146,9 @@ function editListAndAddToOutput(list) {
   listEditPromise.then(
     function (listContent) {
       output += "\n\n\n--------------------------------------------------------\n\n\n";
-      output += getListOutput(list, listContent);
+      if (list && listContent) {
+        output += prepareListContentForExport(list, listContent);
+      }
     },
     function (errorMsg) {
       alert(errorMsg);
@@ -139,11 +158,59 @@ function editListAndAddToOutput(list) {
   return listEditPromise;
 }
 
-////////////////////////////////////  HELPERS
+////////////////////////////////////  OUTPUT
 
-function replaceAll(str, whatStr, withStr) {
-  return str.split(whatStr).join(withStr);
+function startOutput() {
+  document.querySelector("#export-loading").style.display = "block";
+  popupoverlay.style.display = "block";
+  const url = location.href.replace("?export=true", "");
+  output = "<h1>Here are your lists:</h1><textarea id='export-output'>Export of " + url;
 }
+
+function finishOutput() {
+  document.querySelector("#export-loading").style.display = "none";
+  popupoverlay.style.display = "none";
+  showPopup(output + "</textarea>", true);
+}
+
+function prepareListContentForExport(list, listContent) {
+  // Get list ID
+  let listId;
+  if (list.querySelector(".listbox")) {
+    listId = list.querySelector(".listbox").getAttribute("id").replace("listbox-", "");
+  } else {
+    listId = list.querySelector("[id*=listbox-content-slot]").getAttribute("id").replace("listbox-content-slot-", "");
+  }
+
+  // Link to list
+  const listLink = "Link: " + list.querySelector(".box-title a").getAttribute("href");
+
+  // List title (= category + actual title)
+  const listTitle = list.querySelector(".box-title a").innerHTML.replace('<span class="box-subtitle">', "").replace("</span>", "").replace(/\s\s+/g, " ").trim();
+
+  // Creation and modification dates
+  const listDates = "created on " + list.querySelector(".dates").innerHTML.replace("∞", "").replace("+", "").replace(" <br>", ", last updated on ").replace(/\s\s+/g, " ").trim();
+
+  // List image
+  let listImage = list.querySelector(".icon");
+  if (listImage) {
+    listImage = "\nIcon: " + listImage.getAttribute("src").replace("&small=1", "");
+  } else {
+    listImage = "";
+  }
+
+  // The actual list
+  const actualList = addImageLinks(listContent, listId);
+
+  return listTitle + "\n" + listLink + "\n(" + listDates + ")" + listImage + "\n\n" + actualList;
+}
+
+function addImageLinks(listContent, listId) {
+  const attachmentUrl = "https://listography.com/user/" + userId + "/list/" + listId + "/attachment/";
+  return listContent.replace(/\[([a-z]+)\]/g, "[$1: " + attachmentUrl + "$1]");
+}
+
+////////////////////////////////////  HELPERS
 
 function getPathOfUrl(url, tld) {
   let href;
@@ -159,53 +226,6 @@ function getPathOfUrl(url, tld) {
     ending = "." + tld + "/";
   }
   return href.substring(href.indexOf(ending) + ending.length - 1);
-}
-
-function startOutput() {
-  document.querySelector("#export-loading").style.display = "block";
-  popupoverlay.style.display = "block";
-  const url = location.href.replace("?export=true", "");
-  output = "<h1>Here are your lists:</h1><textarea id='export-output'>Export of " + url;
-}
-
-function finishOutput() {
-  document.querySelector("#export-loading").style.display = "none";
-  popupoverlay.style.display = "none";
-  showPopup(output + "</textarea>", true);
-}
-
-function getListOutput(list, listContent) {
-  if (!list || !listContent) return;
-
-  let listId;
-  if (list.querySelector(".listbox")) {
-    listId = list.querySelector(".listbox").getAttribute("id").replace("listbox-", "");
-  } else {
-    listId = list.querySelector("[id*=listbox-content-slot]").getAttribute("id").replace("listbox-content-slot-", "");
-  }
-
-  let listLink = "Link: " + list.querySelector(".box-title a").getAttribute("href");
-
-  let listTitle = list.querySelector(".box-title a").innerHTML.replace('<span class="box-subtitle">', "").replace("</span>", "").replace(/\s\s+/g, " ").trim();
-
-  let listDates = "created on " + list.querySelector(".dates").innerHTML.replace("∞", "").replace("+", "").replace(" <br>", ", last updated on ").replace(/\s\s+/g, " ").trim();
-
-  let listImage = list.querySelector(".icon");
-  if (listImage) {
-    listImage = "\nIcon: " + listImage.getAttribute("src").replace("&small=1", "");
-  } else {
-    listImage = "";
-  }
-
-  return listTitle + "\n" + listLink + "\n(" + listDates + ")" + listImage + "\n\n" + adjustListContent(listContent, listId);
-}
-
-function adjustListContent(content, listId) {
-  // Add image urls
-  const attachmentUrl = "https://listography.com/user/" + userId + "/list/" + listId + "/attachment/";
-  content = content.replace(/\[([a-z]+)\]/g, "[$1: " + attachmentUrl + "$1]");
-
-  return content;
 }
 
 // "forEach" is not async. here is our own async version of it.
