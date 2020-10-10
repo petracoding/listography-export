@@ -187,13 +187,6 @@ function getListOutput(list, listContent) {
 
   let listDates = "created on " + list.querySelector(".dates").innerHTML.replace("∞", "").replace("+", "").replace(" <br>", ", last updated on ").replace(/\s\s+/g, " ").trim();
 
-  let listCommentCount = list.querySelector(".menu .item:nth-child(3) a").innerHTML.replace(/\s\s+/g, " ").trim();
-  if (listCommentCount == "comment") {
-    listCommentCount = "";
-  } else {
-    listCommentCount = ", " + listCommentCount;
-  }
-
   let listImage = list.querySelector(".icon");
   if (listImage) {
     listImage = "\nIcon: " + listImage.getAttribute("src").replace("&small=1", "");
@@ -201,7 +194,7 @@ function getListOutput(list, listContent) {
     listImage = "";
   }
 
-  return listTitle + "\n" + listLink + "\n(" + listDates + listCommentCount + ")" + listImage + "\n\n" + adjustListContent(listContent, listId);
+  return listTitle + "\n" + listLink + "\n(" + listDates + ")" + listImage + "\n\n" + adjustListContent(listContent, listId);
 }
 
 function adjustListContent(content, listId) {
