@@ -9,7 +9,7 @@ let popup;
 let popupoverlay;
 let currentBatch = 1;
 let listCount;
-let listsToBackup = [];
+let listsToExport = [];
 let output = "";
 
 ////////////////////////////////////  INIT
@@ -18,15 +18,15 @@ let output = "";
 if (document.querySelector(".global-menu .create-list")) {
   HTML();
 
-  // start backup if user clicked the backup all link and was redirected to the archive
-  if (pathname == indexPath + "?backup=true") {
-    startBackupAll();
+  // start export if user clicked the export all link and was redirected to the archive
+  if (pathname == indexPath + "?export=true") {
+    startExportAll();
   }
 }
 
-////////////////////////////////////  BACKUP
+////////////////////////////////////  EXPORT
 
-async function startBackupAll() {
+async function startExportAll() {
   const listLinksToOpen = document.querySelectorAll(".body_folder .list a");
   if (!listLinksToOpen) {
     showPopup("No lists found.", true);
@@ -43,7 +43,7 @@ async function startBackupAll() {
   finishOutput();
 }
 
-async function startBackupVisible() {
+async function startExportVisible() {
   const listSelector = ".list-container";
   const listSelectorInArchive = "#list_container .slot";
 
@@ -54,11 +54,11 @@ async function startBackupVisible() {
     return;
   }
 
-  listsToBackup = [...listNodes];
+  listsToExport = [...listNodes];
 
   startOutput();
 
-  await asyncForEach(listsToBackup, async (list) => {
+  await asyncForEach(listsToExport, async (list) => {
     await editListAndAddToOutput(list);
   });
 
@@ -159,14 +159,14 @@ function getPathOfUrl(url, tld) {
 }
 
 function startOutput() {
-  document.querySelector("#backup-loading").style.display = "block";
+  document.querySelector("#export-loading").style.display = "block";
   popupoverlay.style.display = "block";
-  const url = location.href.replace("?backup=true", "");
-  output = "<h1>Here are your lists:</h1><textarea id='backup-output'>Backup of " + url;
+  const url = location.href.replace("?export=true", "");
+  output = "<h1>Here are your lists:</h1><textarea id='export-output'>Export of " + url;
 }
 
 function finishOutput() {
-  document.querySelector("#backup-loading").style.display = "none";
+  document.querySelector("#export-loading").style.display = "none";
   popupoverlay.style.display = "none";
   showPopup(output + "</textarea>", true);
 }
@@ -219,22 +219,22 @@ function HTML() {
   createPopup();
   createLoading();
 
-  createBackupAllButton();
-  createBackupVisibleButton();
+  createExportAllButton();
+  createExportVisibleButton();
 }
 
-function createBackupAllButton() {
+function createExportAllButton() {
   const menu = document.querySelector(".global-menu tbody");
   const tr = document.createElement("tr");
   const td = document.createElement("td");
 
   const button = document.createElement("input");
   button.type = "button";
-  button.value = "backup all";
-  button.className = "backup-button";
+  button.value = "export all";
+  button.className = "export-button";
 
   if (onIndexPage()) {
-    button.onclick = startBackupAll;
+    button.onclick = startExportAll;
   } else {
     button.onclick = goToIndex;
   }
@@ -244,16 +244,16 @@ function createBackupAllButton() {
   menu.appendChild(tr);
 }
 
-function createBackupVisibleButton() {
+function createExportVisibleButton() {
   const menu = document.querySelector(".global-menu tbody");
   const tr = document.createElement("tr");
   const td = document.createElement("td");
 
   const button = document.createElement("input");
   button.type = "button";
-  button.value = "backup visible";
-  button.className = "backup-button";
-  button.onclick = startBackupVisible;
+  button.value = "export visible";
+  button.className = "export-button";
+  button.onclick = startExportVisible;
 
   td.appendChild(button);
   tr.appendChild(td);
@@ -265,14 +265,14 @@ function onIndexPage() {
 }
 
 function goToIndex() {
-  location.href = indexPath + "?backup=true";
+  location.href = indexPath + "?export=true";
 }
 
 function createPopup() {
   popupoverlay = document.createElement("div");
-  popupoverlay.className = "backup-popup-overlay";
+  popupoverlay.className = "export-popup-overlay";
   popup = document.createElement("div");
-  popup.className = "backup-popup";
+  popup.className = "export-popup";
 
   document.body.appendChild(popup);
   document.body.appendChild(popupoverlay);
@@ -282,7 +282,7 @@ function createPopup() {
 
 function createLoading() {
   let loading = document.createElement("div");
-  loading.setAttribute("id", "backup-loading");
+  loading.setAttribute("id", "export-loading");
   loading.style.display = "none";
   loading.innerHTML = "<h1>Loading...</h1><h2>Please wait.</h2>This may take a while if you have more than 100 lists.";
 
