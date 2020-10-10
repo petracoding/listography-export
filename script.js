@@ -20,7 +20,7 @@ if (document.querySelector(".global-menu .create-list")) {
 
   // start export if user clicked the export all link and was redirected to the archive
   if (pathname == indexPath + "?export=true") {
-    startExportAll();
+      setTimeout(startExportAll, 0);
   }
 }
 
