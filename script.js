@@ -109,6 +109,10 @@ function editListAndAddToOutput(list) {
     let checkIfIsInEditMode = setInterval(function () {
       if (list.querySelector(".category_editor")) {
         let listContent = list.querySelector("textarea").innerHTML;
+        if (!listContent) {
+          listContent = "(empty list)";
+        }
+
         list.querySelector(".cancel.button_1_of_3").click();
         resolve(listContent);
         clearInterval(checkIfIsInEditMode);
@@ -125,7 +129,6 @@ function editListAndAddToOutput(list) {
   listEditPromise.then(
     function (listContent) {
       output += "\n\n\n--------------------------------------------------------\n\n\n";
-
       output += getListOutput(list, listContent);
     },
     function (errorMsg) {
