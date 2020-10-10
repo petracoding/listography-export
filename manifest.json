@@ -1,0 +1,15 @@
+{
+  "name": "Listography Export",
+  "description": "Export all your listography lists to a text document.",
+  "version": "0.1",
+  "author": "petracoding",
+  "icons": {},
+  "manifest_version": 2,
+  "content_scripts": [
+    {
+      "matches": ["*://*.listography.com/*"],
+      "css": ["style.css"],
+      "js": ["script.js"]
+    }
+  ]
+}
