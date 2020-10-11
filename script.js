@@ -257,7 +257,13 @@ function HTML() {
 function showOptions() {
   document.querySelector(".export-heading").innerHTML = "Export";
   document.querySelector(".export-text").innerHTML = `
-    No options available.
+    <div class="export-options">
+      <label><input type="checkbox" value="edit">Export real, unformatted content (e.g. * instead of ●)</label>
+      <label><input type="checkbox" value="urls">Include list urls</label>
+      <label><input type="checkbox" value="dates">Include list dates (created on, modified on)</label>
+      <label><input type="checkbox" value="links">Include links</label>
+      <label><input type="checkbox" value="images">Include images (as urls)</label>
+    </div>
     <div class="export-buttons">
       <input type="button" value="Export all lists..." class="export-all" />
       <input type="button" value="Export visible lists..." class="export-visible" />

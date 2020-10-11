@@ -71,6 +71,17 @@
   }
 }
 
+.export-options label {
+  display: block;
+  cursor: pointer;
+  margin-bottom: 5px;
+}
+
+.export-options label input {
+  margin-right: 0.5em;
+  vertical-align: middle;
+}
+
 .export-modal textarea {
   width: 100%;
   min-height: 300px;
