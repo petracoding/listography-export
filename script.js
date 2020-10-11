@@ -258,17 +258,39 @@ function showOptions() {
   document.querySelector(".export-heading").innerHTML = "Export";
   document.querySelector(".export-text").innerHTML = `
     <div class="export-options">
-      <label><input type="checkbox" value="edit">Export real, unformatted content (e.g. * instead of ●)</label>
-      <label><input type="checkbox" value="urls">Include list urls</label>
-      <label><input type="checkbox" value="dates">Include list dates (created on, modified on)</label>
-      <label><input type="checkbox" value="links">Include links</label>
-      <label><input type="checkbox" value="images">Include images (as urls)</label>
+      <label><input type="checkbox" value="edit" checked>Export real, unformatted content (e.g. * instead of ●)</label>
+      <label><input type="checkbox" value="urls" checked>Include list urls</label>
+      <label><input type="checkbox" value="dates" checked>Include list dates (created on, modified on)</label>
+      <label><input type="checkbox" value="links" checked>Include links</label>
+      <label><input type="checkbox" value="images" checked>Include images (as urls)</label>
     </div>
     <div class="export-buttons">
       <input type="button" value="Export all lists..." class="export-all" />
       <input type="button" value="Export visible lists..." class="export-visible" />
     </div>
   `;
+
+  // read storage
+  const test = browser.storage.local.get().then((items) => {
+    for (let prop in items) {
+      const inputEl = document.querySelector(".export-options input[value=" + prop + "]");
+      if (inputEl) {
+        if (items[prop]) {
+          inputEl.checked = true;
+        } else {
+          inputEl.checked = false;
+        }
+      }
+    }
+  });
+
+  // write storage
+  const allOptionInputs = document.querySelectorAll(".export-options input");
+  [...allOptionInputs].forEach((optionInput) => {
+    optionInput.addEventListener("change", () => {
+      browser.storage.local.set({ [optionInput.value]: optionInput.checked });
+    });
+  });
 
   document.querySelector(".export-all").addEventListener("click", () => {
     const onListIndexPage = pathname.startsWith(indexPath) && pathname.indexOf("?v") < 0;

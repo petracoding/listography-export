@@ -5,6 +5,7 @@
   "author": "petracoding",
   "icons": {},
   "manifest_version": 2,
+  "permissions": ["storage"],
   "content_scripts": [
     {
       "matches": ["*://*.listography.com/*"],
