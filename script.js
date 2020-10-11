@@ -2,11 +2,7 @@ let pathname;
 let userName;
 let userId;
 let indexPath;
-let popup;
-let popupoverlay;
-let currentBatch = 1;
 let listCount;
-let listsToExport = [];
 let output = "";
 
 if (document.readyState !== "loading") {
@@ -34,6 +30,7 @@ function init() {
 
     // Start export-all if url contains ?export=true
     if (pathname == indexPath + "?export=true") {
+      openModal();
       setTimeout(startExportAll, 0);
     }
   }
@@ -48,17 +45,19 @@ async function startExportVisible() {
   const listNodes = document.querySelectorAll(listSelector + ", " + listSelectorInArchive);
 
   if (!listNodes || listNodes.length < 1) {
-    showPopup("No visible lists found.", true);
+    showErrorInModal("No visible lists found.");
     return;
   }
 
-  startOutput();
+  prepareModalForExport();
+
+  listCount = 0;
 
   await asyncForEach([...listNodes], async (list) => {
     await editListAndAddToOutput(list);
   });
 
-  finishOutput();
+  prepareModalForFinish();
 }
 
 ////////////////////////////////////  EXPORT ALL
@@ -66,18 +65,20 @@ async function startExportVisible() {
 async function startExportAll() {
   const listLinksToOpen = document.querySelectorAll(".body_folder .list a");
   if (!listLinksToOpen) {
-    showPopup("No lists found.", true);
+    showErrorInModal("No lists found.");
     return;
   }
 
-  startOutput();
+  prepareModalForExport();
+
+  listCount = 0;
 
   await asyncForEach([...listLinksToOpen], async (link) => {
     let list = await openListInArchive(link);
     await editListAndAddToOutput(list);
   });
 
-  finishOutput();
+  prepareModalForFinish();
 }
 
 function openListInArchive(link) {
@@ -148,6 +149,7 @@ function editListAndAddToOutput(list) {
       output += "\n\n\n--------------------------------------------------------\n\n\n";
       if (list && listContent) {
         output += prepareListContentForExport(list, listContent);
+        listCount++;
       }
     },
     function (errorMsg) {
@@ -159,19 +161,6 @@ function editListAndAddToOutput(list) {
 }
 
 ////////////////////////////////////  OUTPUT
-
-function startOutput() {
-  document.querySelector("#export-loading").style.display = "block";
-  popupoverlay.style.display = "block";
-  const url = location.href.replace("?export=true", "");
-  output = "<h1>Here are your lists:</h1><textarea id='export-output'>Export of " + url;
-}
-
-function finishOutput() {
-  document.querySelector("#export-loading").style.display = "none";
-  popupoverlay.style.display = "none";
-  showPopup(output + "</textarea>", true);
-}
 
 function prepareListContentForExport(list, listContent) {
   // Get list ID
@@ -239,92 +228,102 @@ const asyncForEach = async (array, callback) => {
 ////////////////////////////////////  HTML
 
 function HTML() {
-  createPopup();
-  createLoading();
-
-  createExportAllButton();
-  createExportVisibleButton();
-}
-
-function createExportAllButton() {
+  // Create Button
   const menu = document.querySelector(".global-menu tbody");
-  const tr = document.createElement("tr");
-  const td = document.createElement("td");
+  const button = `
+    <tr>
+      <td>
+        <input type="button" value="export" class="export-button">
+      </td>
+    </tr>
+  `;
+  menu.insertAdjacentHTML("beforeend", button);
+  menu.querySelector(".export-button").addEventListener("click", showOptions);
 
-  const button = document.createElement("input");
-  button.type = "button";
-  button.value = "export all";
-  button.className = "export-button";
-
-  if (onIndexPage()) {
-    button.onclick = startExportAll;
-  } else {
-    button.onclick = goToIndex;
-  }
-
-  td.appendChild(button);
-  tr.appendChild(td);
-  menu.appendChild(tr);
+  // Create Modal
+  const page = document.querySelector("#page");
+  const modal = `
+    <div class="export-modal">
+      <div class="export-modal-close">&times;</div>
+      <h1 class="export-heading"></h1>
+      <div class="export-text"></div>
+    </div>
+    <div class="export-modal-overlay"></div>
+  `;
+  page.insertAdjacentHTML("afterend", modal);
+  document.querySelector(".export-modal-close").addEventListener("click", closeModal);
 }
 
-function createExportVisibleButton() {
-  const menu = document.querySelector(".global-menu tbody");
-  const tr = document.createElement("tr");
-  const td = document.createElement("td");
+function showOptions() {
+  document.querySelector(".export-heading").innerHTML = "Export";
+  document.querySelector(".export-text").innerHTML = `
+    No options available.
+    <div class="export-buttons">
+      <input type="button" value="Export all lists..." class="export-all" />
+      <input type="button" value="Export visible lists..." class="export-visible" />
+    </div>
+  `;
 
-  const button = document.createElement("input");
-  button.type = "button";
-  button.value = "export visible";
-  button.className = "export-button";
-  button.onclick = startExportVisible;
+  document.querySelector(".export-all").addEventListener("click", () => {
+    const onListIndexPage = pathname.startsWith(indexPath) && pathname.indexOf("?v") < 0;
 
-  td.appendChild(button);
-  tr.appendChild(td);
-  menu.appendChild(tr);
+    if (onListIndexPage) {
+      startExportAll();
+    } else {
+      navigateToListIndexPage();
+    }
+  });
+
+  document.querySelector(".export-visible").addEventListener("click", startExportVisible);
+
+  openModal();
 }
 
-function onIndexPage() {
-  return pathname.startsWith(indexPath) && pathname.indexOf("?v") < 0;
-}
-
-function goToIndex() {
+function navigateToListIndexPage() {
   location.href = indexPath + "?export=true";
 }
 
-function createPopup() {
-  popupoverlay = document.createElement("div");
-  popupoverlay.className = "export-popup-overlay";
-  popup = document.createElement("div");
-  popup.className = "export-popup";
-
-  document.body.appendChild(popup);
-  document.body.appendChild(popupoverlay);
-
-  hidePopup();
-}
-
-function createLoading() {
-  let loading = document.createElement("div");
-  loading.setAttribute("id", "export-loading");
-  loading.style.display = "none";
-  loading.innerHTML = "<h1>Loading...</h1><h2>Please wait.</h2>This may take a while if you have more than 100 lists.";
-
-  document.body.appendChild(loading);
-}
-
-function showPopup(text, allowClosing) {
-  if (text) popup.innerHTML = text;
-  popupoverlay.style.display = "block";
-  popup.style.display = "block";
+function openModal() {
+  document.querySelector(".export-modal").style.display = "block";
+  document.querySelector(".export-modal-overlay").style.display = "block";
   document.body.style.overflow = "hidden";
-
-  if (allowClosing) {
-    popupoverlay.onclick = hidePopup;
-  }
 }
 
-function hidePopup() {
-  popup.style.display = "none";
-  popupoverlay.style.display = "none";
+function closeModal() {
+  document.querySelector(".export-modal").style.display = "none";
+  document.querySelector(".export-modal-overlay").style.display = "none";
   document.body.style.overflow = "auto";
+}
+
+function prepareModalForExport() {
+  document.querySelector(".export-modal-close").style.display = "none";
+  document.querySelector(".export-heading").innerHTML = "Exporting";
+  document.querySelector(".export-heading").classList.add("loading");
+  document.querySelector(
+    ".export-text"
+  ).innerHTML = `<p>This might take a while if you have many lists.</p><p>You will see your lists being edited in the background.<br />Don't worry, they and their modification date will not be changed.</p>`;
+}
+
+function prepareModalForFinish() {
+  const currentUrl = location.href.replace("?export=true", "");
+  const now = new Date();
+  const currentDateTime = now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate() + " " + now.getHours() + ":" + now.getMinutes();
+
+  document.querySelector(".export-modal-close").style.display = "block";
+  document.querySelector(".export-heading").classList.remove("loading");
+  document.querySelector(".export-heading").innerHTML = "Exported " + listCount + " lists";
+  document.querySelector(".export-text").innerHTML =
+    `<p>You can now copy them below and save them somewhere on your computer.</p>
+    <textarea class="export-output">Export of ` +
+    currentUrl +
+    `
+Export date: ` +
+    currentDateTime +
+    output +
+    `</textarea>
+  `;
+}
+
+function showErrorInModal(text) {
+  document.querySelector(".export-text").innerHTML = "No lists found!";
 }

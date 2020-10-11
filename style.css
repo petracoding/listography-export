@@ -13,8 +13,12 @@
   text-decoration: underline;
 }
 
-#export-loading,
-.export-popup {
+.export-modal,
+.export-modal-overlay {
+  display: none;
+}
+
+.export-modal {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -22,7 +26,7 @@
   padding: 50px;
   background: white;
   z-index: 999;
-  border: 2px dotted lightgray;
+  box-shadow: rgba(0, 0, 0, 0.4) -3px 3px 3px;
   border-radius: 5px;
   min-width: 500px;
   min-height: 200px;
@@ -30,16 +34,68 @@
   align-items: center;
 }
 
-.export-popup h1 {
-  margin-top: 0;
+.export-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 30px;
+  cursor: pointer;
+  padding: 10px;
 }
 
-.export-popup textarea {
+.export-modal h1 {
+  font-size: 24px;
+  margin-top: 0;
+  margin-bottom: 30px;
+}
+
+.export-modal h1.loading::after {
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: bottom;
+  -webkit-animation: ellipsis steps(4, end) 900ms infinite;
+  animation: ellipsis steps(4, end) 900ms infinite;
+  content: "\2026"; /* ascii code for the ellipsis character */
+  width: 0px;
+}
+
+@keyframes ellipsis {
+  to {
+    width: 35px;
+  }
+}
+
+@-webkit-keyframes ellipsis {
+  to {
+    width: 35px;
+  }
+}
+
+.export-modal textarea {
   width: 100%;
   min-height: 300px;
 }
 
-.export-popup-overlay {
+.export-buttons {
+  margin-top: 50px;
+}
+
+.export-modal [type="button"] {
+  background: none;
+  border: none;
+  color: #05a;
+  cursor: pointer;
+  padding: 0;
+  margin-right: 1em;
+  display: inline-block;
+}
+
+.export-modal [type="button"]:hover,
+.export-modal [type="button"]:focus {
+  text-decoration: underline;
+}
+
+.export-modal-overlay {
   content: "";
   position: fixed;
   z-index: 99;
